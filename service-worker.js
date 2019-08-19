@@ -25,8 +25,6 @@ const CACHE_NAME = 'static-cache-v1';
 const FILES_TO_CACHE = [
   '/offline.html',
   '/index.html',
-  '/public/index.html',
-  '/scripts/app.js',
   '/manifest.json',
   '/service-worker.js',
   '/styles/inline.css',
@@ -42,12 +40,10 @@ self.addEventListener('install', (evt) => {
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[ServiceWorker] Pre-caching offline page');
       return cache.addAll(FILES_TO_CACHE);
-      .then(()=>self.skipWaiting())
+      //.then(()=>self.skipWaiting())
     })
-  .catch(err=>console.log('fallo registro de cache',err))
  );
 
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (evt) => {

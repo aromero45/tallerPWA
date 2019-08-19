@@ -1,3 +1,19 @@
+function cargar() {
+  botonAddCity = document.getElementById('butAddCity');
+
+  //botonAddCity.addEventListener('click',saveStation,false);
+
+  var DBCreate =indexedDB.open('Metro');
+
+  DBCreate.onsuccess= function(e){
+    database=e.target.result;
+  }
+  DBCreate.onupgradeneeded=function(e){
+    database=e.target.result;
+    database.createObjectStore('Stations',{keyPath: 'name'});
+  }
+}
+
 (function () {
     'use strict';
 
@@ -55,7 +71,7 @@
      *
      ****************************************************************************/
 
-    // Toggles the visibility of the add new station dialog.
+  // Toggles the visibility of the add new station dialog.
     app.toggleAddDialog = function (visible) {
         if (visible) {
             app.addDialog.classList.add('dialog-container--visible');
@@ -64,8 +80,35 @@
         }
     };
 
-    // Updates a timestation card with the latest weather forecast. If the card
-    // doesn't already exist, it's cloned from the template.
+    //save location list
+    app.saveLocationList= function (locations) {
+      const data = JSON.stringify(locations);
+      localStorage.setItem('locationList', data);
+    }
+    app.loadLocationList= function() {
+      let locations = localStorage.getItem('locationList');
+      if (locations) {
+        try {
+          locations = JSON.parse(locations);
+        } catch (ex) {
+          locations = {};
+        }
+      }
+      if (!locations || Object.keys(locations).length === 0) {
+        const key = initialStationTimetable.key;
+        locations = {};
+        locations[0] = {key: key, label: initialStationTimetable.label, created:initialStationTimetable.created, schedules: initialStationTimetable.sche};
+      }
+      console.log("Stations: ", locations);
+
+      var i;
+      for(i=0;i<Object.keys(locations).length;i++){
+        app.getSchedule(locations[i].key, locations[i].label);
+      }
+      //app.getSchedule(locations.key, locations.label);
+      return locations;
+    }
+
 
     app.updateTimetableCard = function (data) {
         var key = data.key;
@@ -124,6 +167,9 @@
                     result.created = response._metadata.date;
                     result.schedules = response.result.schedules;
                     app.updateTimetableCard(result);
+                    var save= database.transaction(['Stations'],'readwrite');
+                    var tabla = save.objectStore('Stations');
+                    var addCity = tabla.add({name: key, label: label, schedules: result.schedules});
                 }
             } else {
                 // Return the initial weather forecast since no data is available.
@@ -141,12 +187,6 @@
             app.getSchedule(key);
         });
     };
-
-    /*
-     * Fake timetable data that is presented when the user first uses the app,
-     * or when the user has not saved any stations. See startup code for more
-     * discussion.
-     */
 
     var initialStationTimetable = {
 
@@ -179,9 +219,10 @@
      *   Instead, check out IDB (https://www.npmjs.com/package/idb) or
      *   SimpleDB (https://gist.github.com/inexorabletash/c8069c042b734519680c)
      ************************************************************************/
-
+    var cargar = app.loadLocationList();
     app.getSchedule('metros/1/bastille/A', 'Bastille, Direction La Défense');
     app.selectedTimetables = [
         {key: initialStationTimetable.key, label: initialStationTimetable.label}
     ];
 })();
+window.addEventListener('load',cargar,false);
